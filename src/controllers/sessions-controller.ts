@@ -1,8 +1,10 @@
+import { authConfig } from "@/configs/auth"
 import { prisma } from "@/database/prisma"
 import { AppError } from "@/utils/AppError"
 import { compare } from "bcrypt"
 import { Request, Response } from "express"
 import { z } from "zod"
+import jwt, { type SignOptions } from "jsonwebtoken"
 
 export class SessionsController {
     async create(request: Request, response: Response) {
@@ -25,6 +27,17 @@ export class SessionsController {
             throw new AppError("E-mail ou senha inválido" ,401)
         }
 
-        response.json({ email, password })
+        const { secret, expiresIn } = authConfig.jwt
+
+        const signOptions: SignOptions = {
+            subject: user.id,
+            expiresIn,
+        }
+
+        const token = jwt.sign({ role: user.role }, secret, signOptions)
+
+        const { password: _, ...userWithoutPassword } = user
+
+        response.json({ token, user: userWithoutPassword })
     }
 }
